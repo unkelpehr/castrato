@@ -1,0 +1,804 @@
+<!doctype html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>castrato test cases</title>
+</head>
+<body>
+
+	<script type="text/javascript" src="castrato.js"></script>
+	<script>
+	function test_castrato () {
+		var sentinel = { sentinel: 1 },
+			sentinel2 = { sentinel: 2 };
+
+		/*------------------------------------*\
+		    A small and crude assert function
+		    that can handle asynchronous tests,
+		    timeouts and max/min executions.
+		\*------------------------------------*/
+		var assert = (function () {
+			var queue = [],
+				assert_in_progress = false;
+
+			function assert (descr, times, func) {
+				assert_in_progress = true;
+
+				var timeoutId,
+					mediator = castrato();
+
+				if (!func) {
+					func = times;
+					times = 1;
+				}
+
+				function isOk (ok, extra) {
+					if (!--times) {
+						if (times < 0) {
+							ok = 'toomany';
+						} else {
+							clearTimeout(timeoutId);
+							mediator.destroy();
+							assert_in_progress = false;
+						}
+					}
+
+					if (ok === true) {
+						if (!times) {
+							console.info('[OK]', descr);
+						}
+					} else {
+						clearTimeout(timeoutId);
+						mediator.destroy();
+
+						if (ok === undefined) {
+							console.warn('[TIMED OUT]', descr);
+						} else if (ok === 'toomany') {
+							console.warn('[TOO MANY]', descr);
+						} else {
+							console.warn('[FAILED]', descr);
+						}
+					}
+
+					if (!times && queue.length) {
+						var next = queue.shift();
+						assert(next[0], next[1], next[2]);
+					}
+				}
+
+				timeoutId = setTimeout(isOk, 200);
+				try { func(isOk); } catch (e) { isOk(false); throw e; }
+			}
+
+			return function (descr, times, func) {
+				if (!assert_in_progress) {
+					assert(descr, times, func);
+				} else {
+					queue.push([descr, times, func]);
+				}
+			};
+		}());
+
+		/*------------------------------------*\
+		    Test cases
+		\*------------------------------------*/
+		assert('One emit, one node.', function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function () {
+					isOk(true);
+				})
+				.emit('something');
+		});
+
+		assert('One emit, one node. With data.', function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple emits, one node.', 3, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function () {
+					isOk(true);
+				})
+				.emit('something')
+				.emit('something')
+				.emit('something');
+		});
+
+		assert('Multiple emits, one node. With data.', 3, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple subscriptions, one node, one emit.', 3, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function () {
+					isOk(true);
+				})
+				.on('something', function () {
+					isOk(true);
+				})
+				.on('something', function () {
+					isOk(true);
+				})
+				.emit('something');
+		});
+
+		assert('Multiple subscriptions, one node, one emit. With data.', 3, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple subscriptions, one node, multiple emits.', 6, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function () {
+					isOk(true);
+				})
+				.on('something', function () {
+					isOk(true);
+				})
+				.on('something', function () {
+					isOk(true);
+				})
+				.emit('something')
+				.emit('something')
+				.emit('something');
+		});
+
+		assert('Multiple subscriptions, one node, multiple emits. With data.', 6, function (isOk) {
+			var node = castrato();
+
+			node
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes, one emit.', 3, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1.on('something', function () {
+				isOk(true);
+			});
+
+			node2.on('something', function () {
+				isOk(true);
+			});
+
+			node3.on('something', function () {
+				isOk(true);
+			});
+
+			node4.emit('something');
+		});
+
+		assert('Multiple nodes, one emit. With data.', 3, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node2.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node3.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node4.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes, multiple emits.', 6, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1.on('something', function () {
+				isOk(true);
+			});
+
+			node2.on('something', function () {
+				isOk(true);
+			});
+
+			node3.on('something', function () {
+				isOk(true);
+			});
+
+			node4
+				.emit('something')
+				.emit('something')
+				.emit('something');
+		});
+
+		assert('Multiple nodes, multiple emits. With data.', 6, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node2.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node3.on('something', function (data) {
+				isOk(data === sentinel);
+			});
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+
+		assert('Multiple nodes with multiple subscriptions, multiple emits.', 6, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1.on('something', function () {
+				isOk(true);
+			});
+
+			node2.on('something', function () {
+				isOk(true);
+			});
+
+			node3.on('something', function () {
+				isOk(true);
+			});
+
+			node4
+				.emit('something')
+				.emit('something')
+				.emit('something');
+		});
+
+		assert('Multiple nodes with multiple subscriptions, multiple emits. With data.', 12, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node2
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node3
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription. With data.', 9, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node2
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node3
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node2.off('something');
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription and then binds them again. With data.', 12, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node2
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node3
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node2
+				.off('something')
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				})
+				.on('something', function (data) {
+					isOk(data === sentinel);
+				});
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes with multiple subscriptions, multiple emits. One of each of the nodes removes 1 EXPLICIT handler. With data.', 9, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato(),
+
+				h1 = function (data) { isOk(data === sentinel); },
+				h2 = function (data) { isOk(data === sentinel); },
+				h3 = function (data) { isOk(data === sentinel); },
+				h4 = function (data) { isOk(data === sentinel); },
+				h5 = function (data) { isOk(data === sentinel); },
+				h6 = function (data) { isOk(data === sentinel); },
+				h7 = function (data) { isOk(data === sentinel); },
+				h8 = function (data) { isOk(data === sentinel); },
+				h9 = function (data) { isOk(data === sentinel); };
+
+			node1
+				.on('something', h1)
+				.on('something', h2)
+				.on('something', h3);
+
+			node2
+				.on('something', h4)
+				.on('something', h5)
+				.on('something', h6);
+
+			node3
+				.on('something', h7)
+				.on('something', h8)
+				.on('something', h9);
+
+			node1.off('something', h1);
+			node2.off('something', h5);
+			node3.off('something', h9);
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. With data.', 9, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 150);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 20);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 45);
+				});
+
+			node2
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 110);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 98);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 43);
+				});
+
+			node3
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 54);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 100);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done();
+						isOk(data === sentinel);
+					}, 0);
+				});
+
+			node4
+				.emit('something', sentinel)
+				.emit('something', sentinel)
+				.emit('something', sentinel);
+		});
+
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data.', 12, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 50);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 100);
+				});
+
+			node2
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 101);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 107);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 21);
+				});
+
+			node3
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 78);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 64);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 0);
+				});
+
+			node4
+				.emit('something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit('something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit('something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				});
+		});
+
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. With the `persistent` flag included and set to `false`', 12, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node1
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 50);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 100);
+				});
+
+			node2
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 101);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 107);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 21);
+				});
+
+			node3
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 78);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 64);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 0);
+				});
+
+			node4
+				.emit(false, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit(false, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit(false, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				});
+		});
+
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. The emits are done before any subscriptions and the persistent flag is set to `true`.', 12, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			node4
+				.emit(true, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit(true, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				})
+				.emit(true, 'something', sentinel, function (data, subscribers) {
+					for (var i = 0; i < subscribers; i++) {
+						isOk(data[i] === sentinel2);
+					}
+				});
+
+			node1
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 50);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 100);
+				});
+
+			node2
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 101);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 107);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 21);
+				});
+
+			node3
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 78);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 64);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 0);
+				});
+		});
+	}
+
+	test_castrato();
+	</script>
+
+</body>
+</html>
