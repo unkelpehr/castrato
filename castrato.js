@@ -1,7 +1,7 @@
 /**
- * The MIT License (MIT)
+ * Licensed under the MIT License
  * 
- * Copyright (c) <2014> <Pehr Boman, github.com/unkelpehr>
+ * Copyright (c) 2014 Pehr Boman (github.com/unkelpehr)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@
     } else if (typeof exports === 'object') { // Node
         module.exports = factory();
     } else {
-    	// Attaches to the current context
+    	// Attaches to the current context.
         self.castrato = factory;
   	}
 }(this, (function () {
@@ -113,10 +113,9 @@
 	 */
 	function off (fromId, event, handler) {
 		var sub,
-			i = 0,
-			toSubs = subs[event];
+			i = 0;
 
-		if (toSubs) {
+		if (((toSubs = subs[event]))) {
 			while ((sub = toSubs[i++])) {
 				if (sub[0] === fromId && (!handler || handler === sub[1])) {
 					toSubs.splice(--i, 1);
