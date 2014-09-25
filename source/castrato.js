@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-/** @license MIT license-castrato-©2014 Pehr Boman <github.com/unkelpehr> */
+/** @license Licenced under MIT - castrato - ©2014 Pehr Boman <github.com/unkelpehr> */
 (function (self, factory) {
     if (typeof define === 'function' && define.amd) {
     	// AMD. Register as an anonymous module.
