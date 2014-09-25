@@ -25,9 +25,9 @@
 (function (self, factory) {
     if (typeof define === 'function' && define.amd) {
     	// AMD. Register as an anonymous module.
-        define([], factory);
+        define([], factory());
     } else if (typeof exports === 'object') { // Node
-        module.exports = factory();
+        module.exports = factory;
     } else {
     	// Attaches to the current context.
         self.castrato = factory;
@@ -79,7 +79,7 @@
 	 * @param {String} event The event to subscribe to.
 	 * @param {Function} handler A function to execute when the event is triggered.
 	 */
-	function on (fromId, event, handler) {
+	function on (fromId, event, handler, once) {
 		var i, item, subscription = [fromId, handler, handler.length];
 
 		// Create if needed a namespace for this event and push the subscription.
@@ -98,6 +98,10 @@
 					item[1], // `handler`
 					subscription // `explicitSubs`
 				);
+
+				if (once) {
+					break;
+				}
 			}
 		}
 	}
@@ -226,6 +230,29 @@
 			},
 
 			/**
+			 * Attach an event handler function for one event.
+			 *
+			 * @method on
+			 * @param {String} event The event to subscribe to.
+			 * @param {Function} handler A function to execute when the event is triggered.
+			 * @return {Object} `this`
+			 * @example
+			 * 	$.on('something', function (data) {
+			 * 		console.log('Got something!', data);
+			 * 	});
+			 */
+			once: function (event, handler) {
+				var wrapped = function (data, done) {
+					off(nodeId, event, wrapped);
+					handler(data, (handler.length > 1) ? done : done());
+				};
+
+				on(nodeId, event, wrapped, true);
+
+				return this;
+			},
+
+			/**
 			 * Removes an event handler function for one event.
 			 *
 			 * @method off
@@ -246,6 +273,7 @@
 			destroy: function () {
 				index = 0;
 				subs = {};
+				emits = {};
 			}
 		};
 	};

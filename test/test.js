@@ -1,16 +1,17 @@
-<!doctype html>
-<head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-	<title>castrato test cases</title>
-</head>
-<body>
-
-	<script type="text/javascript" src="source/castrato.js"></script>
-	<script>
-	function test_castrato () {
+(function () {
+	function start_test (castrato, AMD) {
 		var sentinel = { sentinel: 1 },
 			sentinel2 = { sentinel: 2 };
+
+		// If required as an AMD module - castrato will immediatly return a new node.
+		// Therefore we'll have to wrap the incoming castrato in a dummy function that returns a "new" node. 
+		// Not all tests are compatible with as being ran with only one node but the majority is.
+		if (AMD) {
+			var _castrato = castrato;
+			castrato = function () {
+				return _castrato;
+			};
+		}
 
 		/*------------------------------------*\
 		    A small and crude assert function
@@ -33,34 +34,32 @@
 				}
 
 				function isOk (ok, extra) {
-					if (!--times) {
-						if (times < 0) {
-							ok = 'toomany';
-						} else {
-							clearTimeout(timeoutId);
-							mediator.destroy();
-							assert_in_progress = false;
-						}
+					if (times === 0 && --times) {
+						ok = 'toomany';
+					} else if (!--times) {
+						clearTimeout(timeoutId);
+						mediator.destroy();
+						assert_in_progress = false;
 					}
 
 					if (ok === true) {
 						if (!times) {
-							console.info('[OK]', descr);
+							console.info('[OK]', descr, '\n');
 						}
 					} else {
 						clearTimeout(timeoutId);
 						mediator.destroy();
 
 						if (ok === undefined) {
-							console.warn('[TIMED OUT]', descr);
+							console.warn('[TIMED OUT]', descr, '\n');
 						} else if (ok === 'toomany') {
-							console.warn('[TOO MANY]', descr);
+							console.warn('[TOO MANY]', descr, '\n');
 						} else {
-							console.warn('[FAILED]', descr);
+							console.warn('[FAILED]', descr, '\n');
 						}
 					}
 
-					if (!times && queue.length) {
+					if (times <= 0 && queue.length) {
 						var next = queue.shift();
 						assert(next[0], next[1], next[2]);
 					}
@@ -309,7 +308,7 @@
 				.emit('something');
 		});
 
-		assert('Multiple nodes with multiple subscriptions, multiple emits. With data.', 12, function (isOk) {
+		!AMD && assert('Multiple nodes with multiple subscriptions, multiple emits. With data.', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -354,7 +353,7 @@
 				.emit('something', sentinel);
 		});
 
-		assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription. With data.', 9, function (isOk) {
+		!AMD && assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription. With data.', 18, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -401,7 +400,7 @@
 				.emit('something', sentinel);
 		});
 
-		assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription and then binds them again. With data.', 12, function (isOk) {
+		!AMD && assert('Multiple nodes with multiple subscriptions, multiple emits. One node removes it\'s subscription and then binds them again. With data.', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -458,7 +457,7 @@
 				.emit('something', sentinel);
 		});
 
-		assert('Multiple nodes with multiple subscriptions, multiple emits. One of each of the nodes removes 1 EXPLICIT handler. With data.', 9, function (isOk) {
+		assert('Multiple nodes with multiple subscriptions, multiple emits. One of each of the nodes removes 1 EXPLICIT handler. With data.', 18, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -499,7 +498,7 @@
 				.emit('something', sentinel);
 		});
 
-		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. With data.', 9, function (isOk) {
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. With data.', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -571,7 +570,7 @@
 				.emit('something', sentinel);
 		});
 
-		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data.', 12, function (isOk) {
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data.', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -646,7 +645,7 @@
 				});
 		});
 
-		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. With the `persistent` flag included and set to `false`', 12, function (isOk) {
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. With the `persistent` flag included and set to `false`', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -721,7 +720,7 @@
 				});
 		});
 
-		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. The emits are done before any subscriptions and the persistent flag is set to `true`.', 12, function (isOk) {
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. The emits are done before any subscriptions and the persistent flag is set to `true`.', 27, function (isOk) {
 			var node1 = castrato(),
 				node2 = castrato(),
 				node3 = castrato(),
@@ -793,12 +792,88 @@
 					setTimeout(function() {
 						done(sentinel2);
 					}, 0);
+				});
+		});
+
+		assert('Multiple nodes with multiple ASYNCHRONOUS subscriptions, multiple emits. That take and returns data. The emits are done before any subscriptions and the persistent flag is set to `true`.\nOne of each node makes three subscriptions, one of which is "on" and the other two "once"`s.', 156, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+			for (var i = 0, to = 50; i < 50; i++) {
+				node4
+					.emit(true, 'something', sentinel, function (data, subscribers) {
+						for (var i = 0; i < subscribers; i++) {
+							isOk(data[i] === sentinel2);
+						}
+					});
+			}
+
+			node1
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				})
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 50);
+				})
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				});
+
+			node2
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 101);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
+				})
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 107);
+				});
+
+			node3
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 78);
+				})
+				.once('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 64);
+				})
+				.on('something', function (data, done) {
+					setTimeout(function() {
+						done(sentinel2);
+					}, 40);
 				});
 		});
 	}
 
-	test_castrato();
-	</script>
-
-</body>
-</html>
+	if (typeof castrato !== 'undefined') {
+		start_test(castrato); // Browser
+	} else if (typeof require === 'function') {
+		if (typeof module !== 'undefined' && module.exports) { // Node
+			if ((castrato = require('../source/castrato.js'))) {
+				start_test(castrato);
+			}
+		} else { // AMD
+			require(['../source/castrato.js'], function (castrato) {
+				start_test(castrato, true);
+			});
+		}
+	}
+}());
