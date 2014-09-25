@@ -213,7 +213,7 @@
 			},
 
 			/**
-			 * Attach an event handler function for one event.
+			 * Attach an event handler function for an event.
 			 *
 			 * @method on
 			 * @param {String} event The event to subscribe to.
@@ -230,30 +230,28 @@
 			},
 
 			/**
-			 * Attach an event handler function for one event.
+			 * Attach an event handler function for an event which will only be fired once.
 			 *
-			 * @method on
+			 * @method once
 			 * @param {String} event The event to subscribe to.
 			 * @param {Function} handler A function to execute when the event is triggered.
 			 * @return {Object} `this`
 			 * @example
-			 * 	$.on('something', function (data) {
+			 * 	$.once('something', function (data) {
 			 * 		console.log('Got something!', data);
 			 * 	});
 			 */
 			once: function (event, handler) {
-				var wrapped = function (data, done) {
-					off(nodeId, event, wrapped);
+				on(nodeId, event, function wrapper (data, done) {
+					off(nodeId, event, wrapper);
 					handler(data, (handler.length > 1) ? done : done());
-				};
-
-				on(nodeId, event, wrapped, true);
+				}, true);
 
 				return this;
 			},
 
 			/**
-			 * Removes an event handler function for one event.
+			 * Removes an event handler function for an event.
 			 *
 			 * @method off
 			 * @param {String} event The event to unsubscribe from.
