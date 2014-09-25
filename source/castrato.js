@@ -80,7 +80,7 @@
 	 * @param {Function} handler A function to execute when the event is triggered.
 	 */
 	function on (fromId, event, handler, once) {
-		var i, item, subscription = [fromId, handler, handler.length > 1];
+		var i, item, subscription = [fromId, handler, handler.length];
 
 		// Create if needed a namespace for this event and push the subscription.
 		(subs[event] || (subs[event] = [])).push(subscription);
@@ -119,7 +119,7 @@
 		var sub,
 			i = 0;
 
-		if ((toSubs = subs[event])) {
+		if (((toSubs = subs[event]))) {
 			while ((sub = toSubs[i++])) {
 				if (sub[0] === fromId && (!handler || handler === sub[1])) {
 					toSubs.splice(--i, 1);
@@ -162,7 +162,7 @@
 			// Execute all handlers that are bound to this event.
 			// Passing `done` if the handler expects it - otherwise decrementing the `left` variable.
 			while ((sub = toSubs[--loop])) {
-				sub[1](data, sub[2] ? done : left--);
+				sub[1](data, (sub[2] > 1) ? done : left--);
 			}
 		}
 
@@ -269,11 +269,9 @@
 			// Only used in testing.
 			// Should get removed in production (and will be removed in the minified version)
 			destroy: function () {
-				nodeId = 0;
 				index = 0;
 				subs = {};
 				emits = {};
-				return this;
 			}
 		};
 	};
