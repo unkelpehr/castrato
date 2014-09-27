@@ -141,13 +141,24 @@
 	function emit (persistent, event, data, handler, explicitSubs) {
 		var sub,
 			toSubs = explicitSubs || subs[event] || [],
-			total = toSubs.length,
-			left = total,
-			loop = total,
+			total,
+			left,
+			loop,
 			answers = [],
 			done;
 
+		// Add any wildcard subscriptions to the target subscriptions.
+		if (subs['*']) {
+			toSubs = toSubs.concat(subs['*']);
+		}
+
+		loop = left = total = toSubs.length;
+
+		// Don't continue setup for calling all the subscribers if there isn't any.
 		if (loop) {
+			// If the emit function does not include a callback;
+			// we still have to set `done` to `noop` so that event handlers
+			// does not try to execute something that is not a function.
 			done = !handler ? noop : function (data) {
 				if (data) {
 					answers.push(data);
@@ -162,7 +173,7 @@
 			// Execute all handlers that are bound to this event.
 			// Passing `done` if the handler expects it - otherwise decrementing the `left` variable.
 			while ((sub = toSubs[--loop])) {
-				sub[1](data, sub[2] ? done : left--);
+				sub[1](data, sub[2] ? done : left--, event);
 			}
 		}
 

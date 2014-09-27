@@ -861,6 +861,88 @@
 					}, 40);
 				});
 		});
+
+		assert('Multiple nodes with subscriptions, multiple emits. One wildcard subscription.', 5, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				node3 = castrato(),
+				node4 = castrato();
+
+				node1
+					.on('*', function () {
+						isOk(true);
+					})
+					.emit('1', { a: 'b'});
+
+				node2.emit('2', { c: 'd'});
+				node3
+					.emit('3', { e: 'f'})
+					.emit('4', { g: 'h'});
+				node4.emit('5', { i: 'j'});
+		});
+
+		var types = [0, 1, -1, '', '0', '1', '-1', [], true, false, undefined, , null, /[a-z]/, function(){}],
+			typesLen = types.length;
+		assert('Event data could be of any data type.', typesLen, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato();
+
+				node1.on('*', function (data, done, name) {
+					isOk(data === types[name]);
+					done();
+				});
+
+				for (var i = 0; i < typesLen; i++) {
+					node1.emit(i, types[i]);
+				}
+		});
+
+		assert('Testing signatures', 8, function (isOk) {
+			var node1 = castrato(),
+				node2 = castrato(),
+				persistent = false,
+				emitCallback = function (response) {
+					isOk(response[0] === sentinel);
+				};
+
+				node1.on('*', function (data, done, name) {
+					switch (name) {
+						case 1:
+							isOk(data === undefined);
+						break;
+
+						case 2:
+							isOk(data === sentinel);
+						break;
+
+						case 3:
+							isOk(data === sentinel2);
+						break;
+
+						case 4:
+							isOk(data === sentinel);
+						break;
+
+						case 5:
+							isOk(data === sentinel2);
+						break;
+
+						case 6:
+							isOk(data === undefined);
+						break;
+					}
+
+					done(sentinel);
+				});
+
+				node2
+					.emit(1)
+					.emit(2, sentinel)
+					.emit(3, sentinel2,  emitCallback)
+					.emit(persistent, 4, sentinel, emitCallback)
+					.emit(persistent, 5, sentinel2)
+					.emit(persistent, 6);
+		});
 	}
 
 	if (typeof castrato !== 'undefined') {
