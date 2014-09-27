@@ -138,10 +138,10 @@
 	 * @param {Object} [data=undefined] Parameters to pass along to the event handler.
 	 * @param {Function} [handler=undefined] A function to execute when all event handlers has returned.
 	 */
-	function emit (persistent, event, data, handler, explicitSubs) {
+	function emit (persistent, event, data, callback, explicitSubs) {
 		var sub,
 			toSubs = explicitSubs || subs[event] || [],
-			total,
+			total = toSubs.length,
 			left,
 			loop,
 			answers = [],
@@ -152,21 +152,22 @@
 			toSubs = toSubs.concat(subs['*']);
 		}
 
-		loop = left = total = toSubs.length;
+		// Wildcard subscriptions shouldn't be counted as subscribers when passed to a possible emit callback.
+		loop = left = toSubs.length;
 
 		// Don't continue setup for calling all the subscribers if there isn't any.
 		if (loop) {
 			// If the emit function does not include a callback;
-			// we still have to set `done` to `noop` so that event handlers
+			// we still have to set `done` to `noop` so that event callbacks
 			// does not try to execute something that is not a function.
-			done = !handler ? noop : function (data) {
+			done = !callback ? noop : function (data) {
 				if (data) {
 					answers.push(data);
 				}
 
 				if (!--left) {
-					handler(answers, total);
-					handler = 0;
+					callback(answers, total);
+					callback = 0;
 				}
 			};
 
@@ -180,13 +181,13 @@
 		// `func` get destructed when called.
 		// It has to be called at least once - even if no one was subscribing.
 		// Execute it if it still exists.
-		if (!left && handler) {
-			handler(answers, total);
+		if (!left && callback) {
+			callback(answers, total);
 		}
 
 		// Save this emit if the `persistent` parameter is set to `true`.
 		if (persistent) {
-			(emits[event] || (emits[event] = [])).push([data, handler]);
+			(emits[event] || (emits[event] = [])).push([data, callback]);
 		}
 	}
 
