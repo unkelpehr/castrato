@@ -191,102 +191,104 @@
 		}
 	}
 
-	return function () {
+	return function (parent) {
 		var nodeId = index++;
 
-		return {
-			/**
-			 * Execute all handlers attached to the given event.
-			 *
-			 * @method emit
-			 * @param {String} event The event to emit
-			 * @param {Object} [data=undefined] Parameters to pass along to the event handler.
-			 * @param {Function} [func=undefined] A function to execute when all event handlers has returned.
-			 * @return {Object} `this`
-			 * @example
-			 * 	$.emit('something');
-			 * 	$.emit('something', { foo: 'bar' });
-			 * 	$.emit('something', { foo: 'bar' }, function (data, subscribers) {
-			 * 		console.log('Emit done, a total of ' + subscribers + ' subscribers returned: ', data);
-			 * 	});
-			 */
-			emit: function (persistent, event, data, handler) {
-				// emit('something', { data: true }, function () {});
-				if (persistent !== true && persistent !== false) {
-					handler = data;
-					data = event;
-					event = persistent;
-					persistent = false;
-				}
+		parent = parent || {};
 
-				emit(persistent, event, data, handler);
-
-				return this;
-			},
-
-			/**
-			 * Attach an event handler function for an event.
-			 *
-			 * @method on
-			 * @param {String} event The event to subscribe to.
-			 * @param {Function} handler A function to execute when the event is triggered.
-			 * @return {Object} `this`
-			 * @example
-			 * 	$.on('something', function (data) {
-			 * 		console.log('Got something!', data);
-			 * 	});
-			 */
-			on: function (event, handler) {
-				on(nodeId, event, handler);
-				return this;
-			},
-
-			/**
-			 * Attach an event handler function for an event which will only be fired once.
-			 *
-			 * @method once
-			 * @param {String} event The event to subscribe to.
-			 * @param {Function} handler A function to execute when the event is triggered.
-			 * @return {Object} `this`
-			 * @example
-			 * 	$.once('something', function (data) {
-			 * 		console.log('Got something!', data);
-			 * 	});
-			 */
-			once: function (event, handler) {
-				on(nodeId, event, function wrapper (data, done) {
-					off(nodeId, event, wrapper);
-					handler(data, (handler.length > 1) ? done : done());
-				}, true);
-
-				return this;
-			},
-
-			/**
-			 * Removes an event handler function for an event.
-			 *
-			 * @method off
-			 * @param {String} event The event to unsubscribe from.
-			 * @param {Function} [handler=null] The original handler that was attached to this event. If not passed, all subscriptions will be removed.
-			 * @return {Object} `this`
-			 * @example
-			 * 	$.off('something');
-			 * 	$.off('something else', handler);
-			 */
-			off: function (event, handler) {
-				off(nodeId, event, handler);
-				return this;
-			},
-
-			// Only used in testing.
-			// Should get removed in production (and will be removed in the minified version)
-			destroy: function () {
-				nodeId = 0;
-				index = 0;
-				subs = {};
-				emits = {};
-				return this;
+		/**
+		 * Execute all handlers attached to the given event.
+		 *
+		 * @method emit
+		 * @param {String} event The event to emit
+		 * @param {Object} [data=undefined] Parameters to pass along to the event handler.
+		 * @param {Function} [func=undefined] A function to execute when all event handlers has returned.
+		 * @return {Object} `this`
+		 * @example
+		 * 	$.emit('something');
+		 * 	$.emit('something', { foo: 'bar' });
+		 * 	$.emit('something', { foo: 'bar' }, function (data, subscribers) {
+		 * 		console.log('Emit done, a total of ' + subscribers + ' subscribers returned: ', data);
+		 * 	});
+		 */
+		parent.emit = function (persistent, event, data, handler) {
+			// emit('something', { data: true }, function () {});
+			if (persistent !== true && persistent !== false) {
+				handler = data;
+				data = event;
+				event = persistent;
+				persistent = false;
 			}
+
+			emit(persistent, event, data, handler);
+
+			return this;
 		};
+
+		/**
+		 * Attach an event handler function for an event.
+		 *
+		 * @method on
+		 * @param {String} event The event to subscribe to.
+		 * @param {Function} handler A function to execute when the event is triggered.
+		 * @return {Object} `this`
+		 * @example
+		 * 	$.on('something', function (data) {
+		 * 		console.log('Got something!', data);
+		 * 	});
+		 */
+		parent.on = function (event, handler) {
+			on(nodeId, event, handler);
+			return this;
+		};
+
+		/**
+		 * Attach an event handler function for an event which will only be fired once.
+		 *
+		 * @method once
+		 * @param {String} event The event to subscribe to.
+		 * @param {Function} handler A function to execute when the event is triggered.
+		 * @return {Object} `this`
+		 * @example
+		 * 	$.once('something', function (data) {
+		 * 		console.log('Got something!', data);
+		 * 	});
+		 */
+		parent.once = function (event, handler) {
+			on(nodeId, event, function wrapper (data, done) {
+				off(nodeId, event, wrapper);
+				handler(data, (handler.length > 1) ? done : done());
+			}, true);
+
+			return this;
+		};
+
+		/**
+		 * Removes an event handler function for an event.
+		 *
+		 * @method off
+		 * @param {String} event The event to unsubscribe from.
+		 * @param {Function} [handler=null] The original handler that was attached to this event. If not passed, all subscriptions will be removed.
+		 * @return {Object} `this`
+		 * @example
+		 * 	$.off('something');
+		 * 	$.off('something else', handler);
+		 */
+		parent.off = function (event, handler) {
+			off(nodeId, event, handler);
+			return this;
+		};
+
+		// Only used in testing.
+		// Should get removed in production (and will be removed in the minified version)
+		parent.destroy = function () {
+			nodeId = 0;
+			index = 0;
+			subs = {};
+			emits = {};
+			return this;
+		};
+		
+		return parent;
 	};
 }())));
