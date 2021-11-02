@@ -1,0 +1,43 @@
+{
+  "name": "castrato",
+  "version": "1.0.0",
+  "description": "An extremely small and fast Javascript mediator working as global, AMD module and in Node.",
+  "type": "module",
+  "main": "./dist/castrato.cjs",
+  "browser": "./dist/castrato.min.js",
+  "module": "./source/castrato.js",
+  "files": [
+    "dist/*",
+    "src/*"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:precleanup && npm run build:dist && npm run build:minify && npm run build:cleanup",
+    "build:precleanup": "(rm -rf dist/* || del /Q dist\\*)",
+    "build:dist": "rollup -c ./rollup.config.js",
+    "build:minify": "uglifyjs dist/castrato.cjs --source-map -o dist/castrato.min.js && uglifyjs dist/castrato.mjs --source-map -o dist/castrato.min.mjs",
+    "build:cleanup": "(rm dist/castrato.mjs || del dist\\castrato.mjs)"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unkelpehr/castrato.git"
+  },
+  "keywords": [
+    "mediator",
+    "eventemitter",
+    "events"
+  ],
+  "author": "Pehr Boman <github.com/unkelpehr>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/unkelpehr/castrato/issues"
+  },
+  "homepage": "https://github.com/unkelpehr/castrato#readme",
+  "devDependencies": {
+    "rollup": "^2.59.0",
+    "uglify-js": "^3.14.3"
+  }
+}
