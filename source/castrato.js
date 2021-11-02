@@ -24,7 +24,7 @@
 
 /** @license Licenced under MIT - castrato - ©2014 Pehr Boman <github.com/unkelpehr> */
 
-var
+let
 	/**
 	 * Contains the next unique node id.
 	 *
@@ -71,7 +71,7 @@ var
  * @param {Function} handler A function to execute when the event is triggered.
  */
 function on (fromId, event, handler, once) {
-	var i, item, subscription = [fromId, handler, handler.length > 1];
+	let i, item, subscription = [fromId, handler, handler.length > 1];
 
 	// Create if needed a namespace for this event and push the subscription.
 	(subs[event] || (subs[event] = [])).push(subscription);
@@ -107,10 +107,11 @@ function on (fromId, event, handler, once) {
  * @param {Function} [handler=null] The original handler that was attached to this event. If not passed, all subscriptions will be removed.
  */
 function off (fromId, event, handler) {
-	var sub,
-		i = 0;
+	let sub,
+		i = 0,
+		toSubs = subs[event];
 
-	if ((toSubs = subs[event])) {
+	if (toSubs) {
 		while ((sub = toSubs[i++])) {
 			if (sub[0] === fromId && (!handler || handler === sub[1])) {
 				toSubs.splice(--i, 1);
@@ -130,7 +131,7 @@ function off (fromId, event, handler) {
  * @param {Function} [handler=undefined] A function to execute when all event handlers has returned.
  */
 function emit (persistent, event, data, callback, explicitSubs) {
-	var sub,
+	let sub,
 		toSubs = explicitSubs || subs[event] || [],
 		total = toSubs.length,
 		left,
@@ -139,8 +140,8 @@ function emit (persistent, event, data, callback, explicitSubs) {
 		done;
 
 	// Add any wildcard subscriptions to the target subscriptions.
-	if (subs['*']) {
-		toSubs = toSubs.concat(subs['*']);
+	if (subs["*"]) {
+		toSubs = toSubs.concat(subs["*"]);
 	}
 
 	// Wildcard subscriptions shouldn't be counted as subscribers when passed to a possible emit callback.
@@ -183,7 +184,7 @@ function emit (persistent, event, data, callback, explicitSubs) {
 }
 
 function Castrato (parent) {
-	var nodeId = index++;
+	let nodeId = index++;
 
 	parent = parent || {};
 
@@ -281,7 +282,7 @@ function Castrato (parent) {
 	};
 	
 	return parent;
-};
+}
 
 // Always return instance?
 let castrato = Castrato();
