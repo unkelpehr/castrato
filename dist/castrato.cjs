@@ -189,109 +189,117 @@
 		}
 	}
 
-	function Castrato (parent) {
-		let nodeId = index++;
-
-		parent = parent || {};
-
-		/**
-		 * Execute all handlers attached to the given event.
-		 *
-		 * @method emit
-		 * @param {String} event The event to emit
-		 * @param {Object} [data=undefined] Parameters to pass along to the event handler.
-		 * @param {Function} [func=undefined] A function to execute when all event handlers has returned.
-		 * @return {Object} `this`
-		 * @example
-		 * 	$.emit('something');
-		 * 	$.emit('something', { foo: 'bar' });
-		 * 	$.emit('something', { foo: 'bar' }, function (data, subscribers) {
-		 * 		console.log('Emit done, a total of ' + subscribers + ' subscribers returned: ', data);
-		 * 	});
-		 */
-		parent.emit = function (persistent, event, data, handler) {
-			// emit('something', { data: true }, function () {});
-			if (persistent !== true && persistent !== false) {
-				handler = data;
-				data = event;
-				event = persistent;
-				persistent = false;
-			}
-
-			emit(persistent, event, data, handler);
-
-			return this;
-		};
-
-		/**
-		 * Attach an event handler function for an event.
-		 *
-		 * @method on
-		 * @param {String} event The event to subscribe to.
-		 * @param {Function} handler A function to execute when the event is triggered.
-		 * @return {Object} `this`
-		 * @example
-		 * 	$.on('something', function (data) {
-		 * 		console.log('Got something!', data);
-		 * 	});
-		 */
-		parent.on = function (event, handler) {
-			on(nodeId, event, handler);
-			return this;
-		};
-
-		/**
-		 * Attach an event handler function for an event which will only be fired once.
-		 *
-		 * @method once
-		 * @param {String} event The event to subscribe to.
-		 * @param {Function} handler A function to execute when the event is triggered.
-		 * @return {Object} `this`
-		 * @example
-		 * 	$.once('something', function (data) {
-		 * 		console.log('Got something!', data);
-		 * 	});
-		 */
-		parent.once = function (event, handler) {
-			on(nodeId, event, function wrapper (data, done) {
-				off(nodeId, event, wrapper);
-				handler(data, (handler.length > 1) ? done : done());
-			}, true);
-
-			return this;
-		};
-
-		/**
-		 * Removes an event handler function for an event.
-		 *
-		 * @method off
-		 * @param {String} event The event to unsubscribe from.
-		 * @param {Function} [handler=null] The original handler that was attached to this event. If not passed, all subscriptions will be removed.
-		 * @return {Object} `this`
-		 * @example
-		 * 	$.off('something');
-		 * 	$.off('something else', handler);
-		 */
-		parent.off = function (event, handler) {
-			off(nodeId, event, handler);
-			return this;
-		};
-
-		// Only used in testing.
-		// Should get removed in production (and will be removed in the minified version)
-		parent.destroy = function () {
-			nodeId = 0;
-			index = 0;
-			subs = {};
-			emits = {};
-			return this;
-		};
+	/**
+	 * Castrato entrypoint
+	 * 
+	 * @constructor
+	 * @returns {Castrato}
+	 */
+	function Castrato () {
+		this.nodeId = index++;
 		
-		return parent;
+		return this;
 	}
 
+	/**
+	 * Execute all handlers attached to the given event.
+	 *
+	 * @method emit
+	 * @param {String} event The event to emit
+	 * @param {Object} [data=undefined] Parameters to pass along to the event handler.
+	 * @param {Function} [func=undefined] A function to execute when all event handlers has returned.
+	 * @return {Castrato} `this`
+	 * @example
+	 * 	$.emit('something');
+	 * 	$.emit('something', { foo: 'bar' });
+	 * 	$.emit('something', { foo: 'bar' }, function (data, subscribers) {
+	 * 		console.log('Emit done, a total of ' + subscribers + ' subscribers returned: ', data);
+	 * 	});
+	 */
+	Castrato.prototype.emit = function (persistent, event, data, handler) {
+		// emit('something', { data: true }, function () {});
+		if (persistent !== true && persistent !== false) {
+			handler = data;
+			data = event;
+			event = persistent;
+			persistent = false;
+		}
+
+		emit(persistent, event, data, handler);
+
+		return this;
+	};
+
+	/**
+	 * Attach an event handler function for an event.
+	 *
+	 * @method on
+	 * @param {String} event The event to subscribe to.
+	 * @param {Function} handler A function to execute when the event is triggered.
+	 * @return {Castrato} `this`
+	 * @example
+	 * 	$.on('something', function (data) {
+	 * 		console.log('Got something!', data);
+	 * 	});
+	 */
+	Castrato.prototype.on = function (event, handler) {
+		on(this.nodeId, event, handler);
+		return this;
+	};
+
+	/**
+	 * Attach an event handler function for an event which will only be fired once.
+	 *
+	 * @method once
+	 * @param {String} event The event to subscribe to.
+	 * @param {Function} handler A function to execute when the event is triggered.
+	 * @return {Castrato} `this`
+	 * @example
+	 * 	$.once('something', function (data) {
+	 * 		console.log('Got something!', data);
+	 * 	});
+	 */
+	Castrato.prototype.once = function (event, handler) {
+		on(this.nodeId, event, function wrapper (data, done) {
+			off(this.nodeId, event, wrapper);
+			handler(data, (handler.length > 1) ? done : done());
+		}, true);
+
+		return this;
+	};
+
+	/**
+	 * Removes an event handler function for an event.
+	 *
+	 * @method off
+	 * @param {String} event The event to unsubscribe from.
+	 * @param {Function} [handler=null] The original handler that was attached to this event. If not passed, all subscriptions will be removed.
+	 * @return {Castrato} `this`
+	 * @example
+	 * 	$.off('something');
+	 * 	$.off('something else', handler);
+	 */
+	Castrato.prototype.off = function (event, handler) {
+		off(this.nodeId, event, handler);
+		return this;
+	};
+
+	// Only used in testing.
+	// Should get removed in production (and will be removed in the minified version)
+	Castrato.prototype.destroy = function () {
+		this.nodeId = 0;
+		index = 0;
+		subs = {};
+		emits = {};
+		return this;
+	};
+
+
 	// Always return instance?
-	let castrato = Castrato();
+	/**
+	 * @type {Castrato}
+	 */
+	let castrato = new Castrato();
 
 	return castrato;
 
