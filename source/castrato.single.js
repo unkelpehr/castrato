@@ -1,3 +1,3 @@
-import Cron from "./castrato.js";
+import castrato from "./castrato.js";
 
-export default Cron;
+export default castrato;
